@@ -10,6 +10,8 @@ import TagToolbar from './components/TagToolbar'
 import GradientBuilder from './components/GradientBuilder'
 import CodeChart from './components/CodeChart'
 import ImportPanel from './components/ImportPanel'
+import IssueMarks from './components/IssueMarks'
+import { collectIssues } from './lib/issues'
 import { GithubIcon, HeartIcon } from './components/icons'
 import { legacyToMiniMessage, parseMiniMessage, plainChars, plainText, stripColorTags, stripLegacyColors, toJsonComponent } from './lib/minimessage'
 import { buildShareUrl, pickShared, readShareHash } from './lib/share'
@@ -68,6 +70,7 @@ export default function App() {
   const [focused, setFocused] = useState(SCENES.find(item => item.id === saved.scene).fields[0].key)
   const [copied, setCopied] = useState('')
   const [panel, setPanel] = useState('tags')
+  const [scrolls, setScrolls] = useState({})
   const [legacy, setLegacy] = useState(saved.legacy)
   const fieldRefs = useRef({})
   const pendingCaret = useRef(null)
@@ -119,13 +122,11 @@ export default function App() {
 
   const prefixChars = useMemo(() => plainChars(`<${player || 'Steve'}> `), [player])
 
-  const diagnostics = useMemo(() => {
-    const found = sceneInfo.fields.flatMap(field => {
-      if (!MULTILINE.has(field.key)) return parsed[field.key].diagnostics.map(item => ({ ...item, field: field.label }))
-      return parsed[field.key].flatMap((line, row) => line.diagnostics.map(item => ({ ...item, field: `${field.label}, line ${row + 1}` })))
-    })
-    return found
-  }, [parsed, sceneInfo])
+  const issues = useMemo(() => {
+    const result = {}
+    for (const field of sceneInfo.fields) result[field.key] = collectIssues(texts[field.key], parsed[field.key], { multiline: MULTILINE.has(field.key), legacy })
+    return result
+  }, [parsed, texts, sceneInfo, legacy])
 
   const output = useMemo(() => {
     const parts = MULTILINE.has(focused) ? parsed[focused] : [parsed[focused]]
@@ -324,20 +325,6 @@ export default function App() {
                   <pre className="inset h-36 overflow-auto px-3 py-2.5 font-mono text-xs leading-relaxed whitespace-pre text-(--text)">{output.json}</pre>
                 </div>
               </div>
-              <div className="mt-4">
-                <span className="section-label mb-2 block">Warnings</span>
-                {diagnostics.length === 0 ? (
-                  <p className="text-xs text-(--muted)">No problems found.</p>
-                ) : (
-                  <ul className="flex flex-col gap-1.5">
-                    {diagnostics.map((item, index) => (
-                      <li key={index} className="inset flex items-start gap-2 px-3 py-2 text-xs leading-relaxed">
-                        <span><span className="text-(--muted)">{item.field}:</span> {item.message}</span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
             </Tile>
           </div>
 
@@ -356,16 +343,29 @@ export default function App() {
                 {sceneInfo.fields.map(field => (
                   <div key={field.key}>
                     <label htmlFor={`field-${field.key}`} className="section-label mb-2 block">{field.label}</label>
+                    <div className="relative">
                     <textarea
                       id={`field-${field.key}`}
                       ref={element => { fieldRefs.current[field.key] = element }}
                       value={texts[field.key]}
                       onChange={event => setField(field.key, event.target.value)}
                       onFocus={() => setFocused(field.key)}
+                      onScroll={event => setScrolls(current => ({ ...current, [field.key]: event.target.scrollTop }))}
                       rows={field.rows}
                       spellCheck={false}
-                      className={fieldClass(`resize-y font-mono leading-relaxed ${focused === field.key ? 'shadow-[0_0_0_1px_var(--accent-text)]' : ''}`)}
+                      className={fieldClass(`resize-y font-mono leading-relaxed scrollbar-gutter-stable ${focused === field.key ? 'shadow-[0_0_0_1px_var(--accent-text)]' : ''}`)}
                     />
+                    <IssueMarks text={texts[field.key]} ranges={issues[field.key].ranges} scrollTop={scrolls[field.key] || 0} />
+                    </div>
+                    {issues[field.key].items.length > 0 && (
+                      <ul className="mt-2 flex flex-col gap-1" aria-label={`Problems in ${field.label}`}>
+                        {issues[field.key].items.map((item, index) => (
+                          <li key={index} className={`text-xs leading-relaxed ${item.level === 'warning' ? 'text-[#ffb86b]' : 'text-[#9fb0ff]'}`}>
+                            <span>{item.line ? `Line ${item.line}: ` : ''}{item.message}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                   </div>
                 ))}
               </div>
