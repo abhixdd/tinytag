@@ -3,9 +3,6 @@
 > A simple, pretty browser tool that renders MiniMessage text in a Minecraft-style game UI: chat, titles, the action bar, item lore, boss bars and scoreboards, with gradient support.
 
 [![license](https://img.shields.io/badge/license-AGPL--3.0-blue?style=flat)](LICENSE)
-[![react](https://img.shields.io/badge/react-19-blue?style=flat)](https://react.dev)
-[![vite](https://img.shields.io/badge/vite-8-blue?style=flat)](https://vite.dev)
-[![node](https://img.shields.io/badge/node-%3E%3D22-blue?style=flat)](https://nodejs.org)
 [![runs](https://img.shields.io/badge/runs-in%20your%20browser-blue?style=flat)](#privacy)
 [![ko-fi](https://img.shields.io/badge/ko--fi-support-ff5e5b?style=flat)](https://ko-fi.com/abhixd)
 
