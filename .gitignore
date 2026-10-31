@@ -1,0 +1,22 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor and tooling
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+.env
+.env.*
+
+# Never commit
+
+*.zip
+*.jar
