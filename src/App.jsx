@@ -143,17 +143,22 @@ export default function App() {
     setFocused(SCENES.find(item => item.id === id).fields[0].key)
   }
 
-  function insertTag(open, close = '', { stripColors = false } = {}) {
+  function insertTag(open, close = '', { stripColors = false, requireSelection = false } = {}) {
     const element = fieldRefs.current[focused]
-    if (!element) return
+    if (!element) return false
     const start = element.selectionStart
     const end = element.selectionEnd
+    if (requireSelection && start === end) {
+      element.focus()
+      return false
+    }
     const value = texts[focused]
     const cleaned = text => (legacy ? stripLegacyColors(stripColorTags(text)) : stripColorTags(text))
     const selected = stripColors ? cleaned(value.slice(start, end)) : value.slice(start, end)
     const inserted = selected ? `${open}${selected}${close}` : `${open}${close}`
     setField(focused, `${value.slice(0, start)}${inserted}${value.slice(end)}`)
     pendingCaret.current = { key: focused, position: selected ? start + inserted.length : start + open.length }
+    return true
   }
 
   function applyPreset(preset) {

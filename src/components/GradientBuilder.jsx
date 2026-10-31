@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import MCText from './MCText'
 import Slider from './Slider'
 import { parseMiniMessage } from '../lib/minimessage'
@@ -9,10 +9,21 @@ const MAX_STOPS = 6
 export default function GradientBuilder({ onInsert }) {
   const [stops, setStops] = useState(GRADIENT_PRESETS[0].stops)
   const [phase, setPhase] = useState(0)
+  const [needsSelection, setNeedsSelection] = useState(false)
 
   const open = `<gradient:${stops.join(':')}${phase !== 0 ? `:${Number(phase.toFixed(2))}` : ''}>`
   const sample = useMemo(() => parseMiniMessage(`${open}Gradient preview text</gradient>`).chars, [open])
   const bar = `linear-gradient(90deg, ${stops.join(', ')})`
+
+  useEffect(() => {
+    if (!needsSelection) return
+    const timer = setTimeout(() => setNeedsSelection(false), 2400)
+    return () => clearTimeout(timer)
+  }, [needsSelection])
+
+  function apply() {
+    setNeedsSelection(!onInsert(open, '</gradient>', { stripColors: true, requireSelection: true }))
+  }
 
   function setStop(index, value) {
     setStops(list => list.map((item, position) => (position === index ? value : item)))
@@ -77,10 +88,16 @@ export default function GradientBuilder({ onInsert }) {
         </div>
       </div>
 
-      <button type="button" onClick={() => onInsert(open, '</gradient>', { stripColors: true })} className="btn btn-primary w-full px-4 py-2.5 text-sm font-bold">
-        Apply to selection
+      <button
+        key={needsSelection ? 'warn' : 'ready'}
+        type="button"
+        onClick={apply}
+        aria-live="polite"
+        className={`btn w-full px-4 py-2.5 text-sm font-bold ${needsSelection ? 'btn-warn animate-shake' : 'btn-primary'}`}
+      >
+        {needsSelection ? 'Select some text in the editor first' : 'Apply to selection'}
       </button>
-      <p className="-mt-1 text-xs leading-relaxed text-(--muted)">Select text in the editor first, or it inserts an empty gradient tag at the cursor. Colors and gradients already in the selection are removed first.</p>
+      <p className="-mt-1 text-xs leading-relaxed text-(--muted)">Select text in the editor, then apply. Colors and gradients already in the selection are removed first.</p>
     </div>
   )
 }
